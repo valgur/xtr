@@ -18,7 +18,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-#include "xtr/sink.hpp"
+#include "xtr/source.hpp"
 #include "xtr/detail/consumer.hpp"
 #include "xtr/logger.hpp"
 
@@ -26,13 +26,13 @@
 #include <mutex>
 
 XTR_FUNC
-xtr::sink::sink(const sink& other)
+xtr::source::source(const source& other)
 {
     *this = other;
 }
 
 XTR_FUNC
-xtr::sink& xtr::sink::operator=(const sink& other)
+xtr::source& xtr::source::operator=(const source& other)
 {
     if (this == &other) [[unlikely]]
         return *this;
@@ -43,8 +43,8 @@ xtr::sink& xtr::sink::operator=(const sink& other)
 
     if (other.open_)
     {
-        const_cast<sink&>(other).post(
-            [this](detail::consumer& c, const auto& name) { c.add_sink(*this, name); });
+        const_cast<source&>(other).post(
+            [this](detail::consumer& c, const auto& name) { c.add_source(*this, name); });
         open_ = true;
     }
 
@@ -52,22 +52,22 @@ xtr::sink& xtr::sink::operator=(const sink& other)
 }
 
 XTR_FUNC
-xtr::sink::sink(logger& owner, std::string name)
+xtr::source::source(logger& owner, std::string name)
 {
-    owner.register_sink(*this, std::move(name));
+    owner.register_source(*this, std::move(name));
 }
 
 XTR_FUNC
-void xtr::sink::close()
+void xtr::source::close()
 {
     if (open_)
     {
         sync(/*destroy=*/true);
         open_ = false;
-        // clear() is called here in case the sink is registered with the
+        // clear() is called here in case the source is registered with the
         // logger again, e.g. via assignment. This is because when the
         // 'destruct' flag is received by the consumer it cannot perform any
-        // further operations on the sink (as the sink may no longer
+        // further operations on the source (as the source may no longer
         // exist), including updating the read offset of the ring buffer, which
         // means that some residual data will be left in the buffer that needs
         // to be cleared.
@@ -76,13 +76,13 @@ void xtr::sink::close()
 }
 
 XTR_FUNC
-bool xtr::sink::is_open() const noexcept
+bool xtr::source::is_open() const noexcept
 {
     return open_;
 }
 
 XTR_FUNC
-void xtr::sink::sync(bool destroy)
+void xtr::source::sync(bool destroy)
 {
     std::condition_variable cv;
     std::mutex m;
@@ -119,7 +119,7 @@ void xtr::sink::sync(bool destroy)
             // unwound).
             cv.notify_one();
             // Do not access any captured variables after notifying because if
-            // the sink is destructing then the underlying storage may have
+            // the source is destructing then the underlying storage may have
             // been freed already.
         });
 
@@ -129,7 +129,7 @@ void xtr::sink::sync(bool destroy)
 }
 
 XTR_FUNC
-void xtr::sink::set_name(std::string name)
+void xtr::source::set_name(std::string name)
 {
     post(
         [name = std::move(name)](auto&, auto& oldname) mutable
@@ -140,7 +140,7 @@ void xtr::sink::set_name(std::string name)
 }
 
 XTR_FUNC
-xtr::sink::~sink()
+xtr::source::~source()
 {
     close();
 }

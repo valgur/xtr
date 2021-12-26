@@ -29,19 +29,19 @@ xtr::logger::~logger()
 }
 
 XTR_FUNC
-xtr::sink xtr::logger::get_sink(std::string name)
+xtr::source xtr::logger::get_source(std::string name)
 {
-    return sink(*this, std::move(name));
+    return source(*this, std::move(name));
 }
 
 XTR_FUNC
-void xtr::logger::register_sink(sink& s, std::string name) noexcept
+void xtr::logger::register_source(source& s, std::string name) noexcept
 {
     assert(!s.open_);
     post(
         [&s, name = std::move(name)](detail::consumer& c, auto&)
         {
-            c.add_sink(s, name);
+            c.add_source(s, name);
         });
     s.open_ = true;
 }

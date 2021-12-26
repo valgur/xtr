@@ -12,7 +12,7 @@ Description
 -----------
 
 xtrctl is a command line tool that can be used to query the status of log
-sinks, modify log levels and reopen log files (for rotation) for the xtr
+sources, modify log levels and reopen log files (for rotation) for the xtr
 logger.
 
 Commands
@@ -23,8 +23,8 @@ Querying Sink Status
 
 xtrctl status [options] [pattern] <socket path>
 
-The status command displays status information for sinks matching the given
-pattern, or for all sinks if no pattern is specified. The sink name, current
+The status command displays status information for sources matching the given
+pattern, or for all sources if no pattern is specified. The source name, current
 log level, buffer capacity, current used buffer space and number of dropped
 log messages are displayed. For example::
 
@@ -38,8 +38,8 @@ Setting Log Levels
 
 xtrctl level <level> [options] [pattern] <socket path>
 
-The level command sets the log level to *level* for sinks matching the given
-pattern, or for all sinks if no pattern is specified. Valid values for *level*
+The level command sets the log level to *level* for sources matching the given
+pattern, or for all sources if no pattern is specified. Valid values for *level*
 are 'none', 'fatal', 'error', 'warning', 'info' or 'debug' (please refer to the
 :ref:`log levels <log-levels>` section of the API reference or **libxtr**\(3\)).
 
@@ -69,9 +69,9 @@ Patterns
 --------
 
 In the status and level commands *pattern* is a regular expression or wildcard
-that may be used to selectively apply the command to sinks with names matching
+that may be used to selectively apply the command to sources with names matching
 the given pattern. If no pattern is specified then the command applies to all
-sinks. By default the pattern is interpreted as a basic regular expression,
+sources. By default the pattern is interpreted as a basic regular expression,
 to use an extended regular expression or wildcard please refer to the
 :ref:`OPTIONS <options>` section.
 
@@ -106,7 +106,7 @@ be found in the API reference or **libxtr**\(3\).
 Examples
 --------
 
-Querying the status of all sinks::
+Querying the status of all sources::
 
     > xtrctl status /run/user/1000/xtrctl.7852.0 
     Test0 (info) 64K capacity, 0K used, 0 dropped
@@ -115,17 +115,17 @@ Querying the status of all sinks::
     Test3 (info) 64K capacity, 0K used, 0 dropped
     Test4 (info) 64K capacity, 0K used, 0 dropped
 
-Setting the level of all sinks to 'error'::
+Setting the level of all sources to 'error'::
 
     > xtrctl level error /run/user/1000/xtrctl.7852.0 
     Success
 
-Setting the level of sinks matching a pattern to 'warning'::
+Setting the level of sources matching a pattern to 'warning'::
 
     > xtrctl level warning 'Test[0-2]' /run/user/1000/xtrctl.7852.0 
     Success
 
-Querying the status of sinks matching a pattern::
+Querying the status of sources matching a pattern::
 
     > xtrctl status 'Test[0-2]' /run/user/1000/xtrctl.7852.0 
     Test0 (warning) 64K capacity, 0K used, 0 dropped

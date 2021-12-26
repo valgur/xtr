@@ -7,9 +7,9 @@ Overview
 --------
 
 The XTR API contains two classes; :cpp:class:`xtr::logger` and
-:cpp:class:`xtr::sink`. Sinks each contain a queue [#queue]_, and
+:cpp:class:`xtr::source`. Sources each contain a queue [#queue]_, and
 pass log messages to the associated logger via these queues. Each logger
-has a background consumer thread which reads from the sinks that were created from the
+has a background consumer thread which reads from the sources that were created from the
 logger. The background thread then formats the log message and either writes it
 to disk or passes it to a custom back-end if one is in use.
 
@@ -27,24 +27,24 @@ to disk or passes it to a custom back-end if one is in use.
     | Sink |---[queue]---+
     +------+
 
-An application is expected to use multiple sinks, for example a sink per thread, or
-sink per component. To support this sinks have a name associated with them which
+An application is expected to use multiple sources, for example a source per thread, or
+source per component. To support this sources have a name associated with them which
 is included in the output log message. Sink names do not need to be unique.
 
-Creating and Writing to Sinks
+Creating and Writing to Sources
 -----------------------------
 
-Sinks are created either by calling :cpp:func:`xtr::logger::get_sink`, via normal
-construction followed by a call to :cpp:func:`xtr::logger::register_sink`, or by
-copying another sink. Copied sinks are registered to the same logger and have the
-same name as the source sink. Sinks may be renamed by calling :cpp:func:`xtr::sink::set_name`.
-Once a sink has been created or registered, it may be written to using one of several
+Sources are created either by calling :cpp:func:`xtr::logger::get_source`, via normal
+construction followed by a call to :cpp:func:`xtr::logger::register_source`, or by
+copying another source. Copied sources are registered to the same logger and have the
+same name as the source source. Sources may be renamed by calling :cpp:func:`xtr::source::set_name`.
+Once a source has been created or registered, it may be written to using one of several
 log macros which are described in the :ref:`log macros <log-macros>` section.
 
 Examples
 ~~~~~~~~
 
-Sink creation via :cpp:func:`xtr::logger::get_sink`:
+Sink creation via :cpp:func:`xtr::logger::get_source`:
 
 .. code-block:: c++
 
@@ -52,22 +52,22 @@ Sink creation via :cpp:func:`xtr::logger::get_sink`:
 
     xtr::logger log;
 
-    xtr::sink s = log.get_sink("Main");
+    xtr::source s = log.get_source("Main");
 
     XTR_LOG(s, "Hello world");
 
 View this example on `Compiler Explorer <https://godbolt.org/z/1GWbEPq8T>`__.
 
-Sink creation via :cpp:func:`xtr::logger::register_sink`:
+Sink creation via :cpp:func:`xtr::logger::register_source`:
 
 .. code-block:: c++
 
     #include <xtr/logger.hpp>
 
     xtr::logger log;
-    xtr::sink s;
+    xtr::source s;
 
-    log.register_sink(s, "Main");
+    log.register_source(s, "Main");
 
     XTR_LOG(s, "Hello world");
 
@@ -81,8 +81,8 @@ Sink creation via copying:
 
     xtr::logger log;
 
-    xtr::sink s1 = log.get_sink("Main");
-    xtr::sink s2 = s1;
+    xtr::source s1 = log.get_source("Main");
+    xtr::source s2 = s1;
 
     s2.set_name("Copy");
 
@@ -110,7 +110,7 @@ Examples
 
     xtr::logger log;
 
-    xtr::sink s = log.get_sink("Main");
+    xtr::source s = log.get_source("Main");
 
     XTR_LOG(s, "Hello {}", 123); // Hello 123
     XTR_LOG(s, "Hello {}", 123.456); // Hello 123.456
@@ -124,7 +124,7 @@ Passing Arguments by Value or Reference
 ---------------------------------------
 
 The default behaviour of the logger is to copy format arguments into the
-specified sink by value. Note that no allocations are be performed by the
+specified source by value. Note that no allocations are be performed by the
 logger when this is done. If copying is undesirable then arguments may be
 passed by reference by wrapping them in a call to :cpp:func:`xtr::nocopy`.
 
@@ -137,7 +137,7 @@ Examples
 
     xtr::logger log;
 
-    xtr::sink s = log.get_sink("Main");
+    xtr::source s = log.get_source("Main");
 
     static std::string arg = "world";
 
@@ -164,7 +164,7 @@ following log statement:
 
 If `str` is a :cpp:expr:`std::string`, :cpp:expr:`std::string_view`,
 :cpp:expr:`char*` or :cpp:expr:`char[]` then the contents of `str` will be copied
-into `sink` without incurring any allocations. The entire statement is guaranteed
+into `source` without incurring any allocations. The entire statement is guaranteed
 to not allocate---i.e. even if :cpp:expr:`std::string` is passed, the
 :cpp:expr:`std::string` copy constructor is not invoked and no allocation occurs.
 String data is copied in order to provide safe default behaviour regarding the
@@ -173,7 +173,7 @@ string arguments may be wrapped in a call to :cpp:func:`xtr::nocopy`:
 
 .. code-block:: c++
 
-    XTR_LOG(sink, "{}", nocopy(str));
+    XTR_LOG(source, "{}", nocopy(str));
 
 If this is done then only a pointer to the string data contained in `str` is
 copied. The user is then responsible for ensuring that the string data remains
@@ -191,14 +191,14 @@ additional macros that are described in the :ref:`log macros <log-macros>`
 section of the API reference, all of which follow the convention of containing
 "LOGL" in the macro name.
 
-Each sink has its own log level, which can be programmatically set or queried
-via :cpp:func:`xtr::sink::set_level` and :cpp:func:`xtr::sink::level`, and can
+Each source has its own log level, which can be programmatically set or queried
+via :cpp:func:`xtr::source::set_level` and :cpp:func:`xtr::source::level`, and can
 be set or queried from the command line using the :ref:`xtrctl <xtrctl>` tool.
 
 Each log level has an order of importance. The listing of levels above is in
 the order of increasing importance---so the least important level is 'debug'
 and the most important level is 'fatal'. If a log statement is made with a
-level that is lower than the current level of the sink then the log statement
+level that is lower than the current level of the source then the log statement
 is discarded. Note that this includes any calls made as arguments to the log,
 so in the following example the function :cpp:func:`foo` is not called:
 
@@ -208,7 +208,7 @@ so in the following example the function :cpp:func:`foo` is not called:
 
     xtr::logger log;
 
-    xtr::sink s = log.get_sink("Main");
+    xtr::source s = log.get_source("Main");
 
     s.set_level(xtr::log_level_t::error);
 
@@ -224,16 +224,16 @@ Debug log statements can be disabled by defining XTR_NDEBUG.
 Fatal Log Statements
 ~~~~~~~~~~~~~~~~~~~~
 
-Fatal log statements will additionally call :cpp:func:`xtr::sink::sync` followed
+Fatal log statements will additionally call :cpp:func:`xtr::source::sync` followed
 by `abort(3) <https://www.man7.org/linux/man-pages/man3/abort.3.html>`__.
 
 Thread Safety
 -------------
 
  * All functions in :cpp:class:`xtr::logger` are thread-safe.
- * No functions in :cpp:class:`xtr::sink` are thread-safe other than
-   :cpp:func:`xtr::sink::level` and :cpp:func:`xtr::sink::set_level`.
-   This is because each thread is expected to have its own sink(s).
+ * No functions in :cpp:class:`xtr::source` are thread-safe other than
+   :cpp:func:`xtr::source::level` and :cpp:func:`xtr::source::set_level`.
+   This is because each thread is expected to have its own source(s).
 
 .. _custom-formatters:
 
@@ -276,7 +276,7 @@ Formatting a custom type via operator<<:
     {
         xtr::logger log;
 
-        xtr::sink s = log.get_sink("Main");
+        xtr::source s = log.get_source("Main");
 
         XTR_LOG(s, "Hello {}", custom());
 
@@ -316,7 +316,7 @@ Formatting a custom type via fmt::formatter:
     {
         xtr::logger log;
 
-        xtr::sink s = log.get_sink("Main");
+        xtr::source s = log.get_source("Main");
 
         XTR_LOG(s, "Hello {}", custom());
 
@@ -364,7 +364,7 @@ varying levels of accuracy and performance. The options are listed below.
 +-----------------+----------+-------------+
 
 The performance of the TSC source is listed as either low or medium as it depends
-on the particular CPU.
+upon the CPU model being used.
 
 .. _basic-time-source:
 
@@ -374,7 +374,7 @@ Basic
 The :c:macro:`XTR_LOG` macro and it's variants listed under the
 :ref:`basic macros <log-macros>` section of the API reference all use the basic
 time source. In these macros no timestamp is read when the log message is written
-to the sink's queue, instead the logger's background thread reads the timestamp when
+to the source's queue, instead the logger's background thread reads the timestamp when
 the log message is read from the queue. This is of course not accurate, but it is
 fast.
 
@@ -438,7 +438,7 @@ Examples
 	{
 		xtr::logger log;
 
-		xtr::sink s = log.get_sink("Main");
+		xtr::source s = log.get_source("Main");
 
 		XTR_LOG_TS(s, (std::timespec{123, 456}), "Hello world");
 
@@ -460,14 +460,14 @@ Lifetime
 ~~~~~~~~
 
 The consumer thread associated with a given logger will terminate only
-when the logger and all associated sinks have been destructed, and is
+when the logger and all associated sources have been destructed, and is
 joined by the logger destructor. This means that when the logger
-destructs, it will block until all associated sinks have also destructed.
+destructs, it will block until all associated sources have also destructed.
 
-This is done to prevent creating 'orphan' sinks which are open but not being
-read from by a logger. This should make using the logger easier as sinks will
+This is done to prevent creating 'orphan' sources which are open but not being
+read from by a logger. This should make using the logger easier as sources will
 never lose data and will never be disconnected from the associated logger
-unless they are explicitly disconnected by closing the sink.
+unless they are explicitly disconnected by closing the source.
 
 CPU Affinity
 ~~~~~~~~~~~~
@@ -508,7 +508,7 @@ Examples
             perror("pthread_setaffinity_np");
         }
 
-        xtr::sink s = log.get_sink("Main");
+        xtr::source s = log.get_source("Main");
 
         XTR_LOG(s, "Hello world");
 
@@ -574,7 +574,7 @@ The basic constructor only accepts an *output* and *error* function.
     The output function is invoked when a log line is produced.
     The first argument *level* is the log level associated with the
     statement, the second argument *buf* is a pointer to the formatted
-    statement (including log level, timestamp and sink name), and
+    statement (including log level, timestamp and source name), and
     the third argument *size* is the length in bytes of the formatted
     statement. This function should return the number of bytes
     accepted by the back-end, or -1 if an error occurred. Note
@@ -675,7 +675,7 @@ to send log statements to `syslog(3) <https://www.man7.org/linux/man-pages/man3/
             }
         );
 
-        xtr::sink s = log.get_sink("Main");
+        xtr::source s = log.get_source("Main");
 
         XTR_LOG(s, "Hello world");
 
@@ -708,7 +708,7 @@ The following example will output::
 
     xtr::logger log;
 
-    xtr::sink s = log.get_sink("Main");
+    xtr::source s = log.get_source("Main");
 
     log.set_log_level_style(
         [](auto level)

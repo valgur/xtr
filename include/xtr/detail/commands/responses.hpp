@@ -28,9 +28,9 @@
 
 namespace xtr::detail
 {
-    struct sink_info
+    struct source_info
     {
-        static constexpr auto frame_id = frame_id_t(message_id::sink_info);
+        static constexpr auto frame_id = frame_id_t(message_id::source_info);
 
         log_level_t level;
         std::size_t buf_capacity;

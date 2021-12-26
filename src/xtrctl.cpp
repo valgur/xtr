@@ -53,8 +53,8 @@ namespace
             << "Usage: " << progname << " [--help] <command> [<args>] <socket path>\n"
             "Available commands are:\n"
             "\n"
-            "  status [pattern]             Displays sink statuses\n"
-            "  level <level> [pattern]      Sets sink log levels. Valid levels are;\n"
+            "  status [pattern]             Displays source statuses\n"
+            "  level <level> [pattern]      Sets source log levels. Valid levels are;\n"
             "                               fatal, error, warning, info, debug\n"
             "  reopen                       Reopens the log file\n"
             "\n"
@@ -65,7 +65,7 @@ namespace
             "  -G, --basic-regex            Pattern is a regular expression (the default)\n"
             "  -W, --wildcard               Pattern is a wildcard pattern\n"
             "\n"
-            "If no pattern is specified then the command applies to all sinks.\n";
+            "If no pattern is specified then the command applies to all sources.\n";
 
         std::exit(status);
     }
@@ -235,7 +235,7 @@ int main(int argc, char* argv[])
         send(fd.get(), rot);
     }
 
-    std::vector<xtrd::sink_info> infos;
+    std::vector<xtrd::source_info> infos;
     xtrd::frame_buf buf;
 
     while (const ::ssize_t nbytes = xtrd::command_recv(fd.get(), buf))
@@ -248,8 +248,8 @@ int main(int argc, char* argv[])
 
         switch (buf.hdr.frame_id)
         {
-        case xtrd::sink_info::frame_id:
-            infos.push_back(*frame_cast<xtrd::sink_info>(&buf, std::size_t(nbytes)));
+        case xtrd::source_info::frame_id:
+            infos.push_back(*frame_cast<xtrd::source_info>(&buf, std::size_t(nbytes)));
             break;
         case xtrd::success::frame_id:
             std::cout << "Success\n";

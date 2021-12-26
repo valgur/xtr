@@ -27,7 +27,7 @@
 #include "detail/throw.hpp"
 #include "log_macros.hpp"
 #include "log_level.hpp"
-#include "sink.hpp"
+#include "source.hpp"
 
 #include <chrono>
 #include <cstdio>
@@ -137,10 +137,10 @@ namespace xtr::detail
 /**
  * The main logger class. When constructed a background thread will be created
  * which is used for formatting log messages and performing I/O. To write to the
- * logger call @ref logger::get_sink to create a sink, then pass the sink
+ * logger call @ref logger::get_source to create a source, then pass the source
  * to a macro such as @ref XTR_LOG
- * (see the <a href="guide.html#creating-and-writing-to-sinks">creating and
- * writing to sinks</a> section of the user guide for details).
+ * (see the <a href="guide.html#creating-and-writing-to-sources">creating and
+ * writing to sources</a> section of the user guide for details).
  */
 class xtr::logger
 {
@@ -441,16 +441,16 @@ public:
                     &control_),
                 make_clock(std::forward<Clock>(clock)));
         // Passing control_ to the consumer is equivalent to calling
-        // register_sink, so mark it as open.
+        // register_source, so mark it as open.
         control_.open_ = true;
         set_command_path(std::move(command_path));
     }
 
     /**
      * Logger destructor. This function will join the consumer thread. If
-     * sinks are still connected to the logger then the consumer thread
-     * will not terminate until the sinks disconnect, i.e. the destructor
-     * will block until all connected sinks disconnect from the logger.
+     * sources are still connected to the logger then the consumer thread
+     * will not terminate until the sources disconnect, i.e. the destructor
+     * will block until all connected sources disconnect from the logger.
      */
     ~logger();
 
@@ -464,25 +464,25 @@ public:
     }
 
     /**
-     *  Creates a sink with the specified name. Note that each call to this
-     *  function creates a new sink; if repeated calls are made with the
-     *  same name, separate sinks with the name name are created.
+     *  Creates a source with the specified name. Note that each call to this
+     *  function creates a new source; if repeated calls are made with the
+     *  same name, separate sources with the name name are created.
      *
-     *  @param name: The name for the given sink.
+     *  @param name: The name for the given source.
      */
-    [[nodiscard]] sink get_sink(std::string name);
+    [[nodiscard]] source get_source(std::string name);
 
     /**
-     *  Registers the sink with the logger. Note that the sink name does not
+     *  Registers the source with the logger. Note that the source name does not
      *  need to be unique; if repeated calls are made with the same name,
-     *  separate sinks with the same name are registered.
+     *  separate sources with the same name are registered.
      *
-     *  @param s: The sink to register.
-     *  @param name: The name for the given sink.
+     *  @param s: The source to register.
+     *  @param name: The name for the given source.
      *
-     *  @pre The sink must be closed.
+     *  @pre The source must be closed.
      */
-    void register_sink(sink& s, std::string name) noexcept;
+    void register_source(source& s, std::string name) noexcept;
 
     /**
      * Sets the logger output to the specified stream. The existing output
@@ -631,11 +631,11 @@ private:
             };
     }
 
-    sink control_; // aligned to cache line so first to avoid extra padding
+    source control_; // aligned to cache line so first to avoid extra padding
     jthread consumer_;
     std::mutex control_mutex_;
 
-    friend sink;
+    friend source;
 };
 
 #endif

@@ -46,7 +46,7 @@ namespace xtr::detail
         return os << "<invalid>";
     }
 
-    inline std::ostream& operator<<(std::ostream& os, const sink_info& si)
+    inline std::ostream& operator<<(std::ostream& os, const source_info& si)
     {
         return os
             << si.name

@@ -18,8 +18,8 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-#ifndef XTR_SINK_HPP
-#define XTR_SINK_HPP
+#ifndef XTR_SOURCE_HPP
+#define XTR_SOURCE_HPP
 
 #include "detail/align.hpp"
 #include "detail/is_c_string.hpp"
@@ -44,7 +44,7 @@
 
 namespace xtr
 {
-    class sink;
+    class source;
     class logger;
 
     namespace detail
@@ -64,23 +64,23 @@ namespace xtr
     std::is_same_v<std::remove_cvref_t<TYPE>, std::string>)
 
 /**
- * Log sink class. A sink is how log messages are written to a log.
- * Each sink has its own queue which is used to send log messages
+ * Log source class. A source is how log messages are written to a log.
+ * Each source has its own queue which is used to send log messages
  * to the logger. Sink operations are not thread safe, with the
  * exception of @ref set_level and @ref level.
  *
- * It is expected that an application will have many sinks, such
- * as a sink per thread or sink per component. A sink that is connected
- * to a logger may be created by calling @ref logger::get_sink. A sink
+ * It is expected that an application will have many sources, such
+ * as a source per thread or source per component. A source that is connected
+ * to a logger may be created by calling @ref logger::get_source. A source
  * that is not connected to a logger may be created simply by default
- * construction, then the sink may be connected to a logger by calling
- * @ref logger::register_sink.
+ * construction, then the source may be connected to a logger by calling
+ * @ref logger::register_source.
  */
-class xtr::sink
+class xtr::source
 {
 private:
     // Function pointer type for performing type erasure. Function pointers
-    // of this type are written to the sinks ring buffer and point to either
+    // of this type are written to the sources ring buffer and point to either
     // trampoline0, trampolineN or trampolineS (see detail/trampolines.hpp)
     using fptr_t =
         std::byte* (*)(
@@ -91,50 +91,50 @@ private:
             std::string& name) noexcept;
 
 public:
-    sink() = default;
+    source() = default;
 
     /**
-     * Sink copy constructor. When a sink is copied it is automatically
-     * registered with the same logger object as the source sink, using
-     * the same sink name. The sink name may be modified by calling @ref
+     * Sink copy constructor. When a source is copied it is automatically
+     * registered with the same logger object as the source source, using
+     * the same source name. The source name may be modified by calling @ref
      * set_name.
      */
-    sink(const sink& other);
+    source(const source& other);
 
     /**
-     * Sink copy assignment operator. When a sink is copy assigned it
+     * Sink copy assignment operator. When a source is copy assigned it
      * is closed in order to disconnect it from any existing logger object
      * and is then automatically registered with the same logger object as
-     * the source sink, using the same sink name. The sink name may be
+     * the source source, using the same source name. The source name may be
      * modified by calling @ref set_name.
      */
-    sink& operator=(const sink& other);
+    source& operator=(const source& other);
 
     /**
-     * Sink destructor. When a sink is destructed it is automatically
+     * Sink destructor. When a source is destructed it is automatically
      * closed.
      */
-    ~sink();
+    ~source();
 
     /**
-     *  Closes the sink. After this function returns the sink is closed and
-     *  log() functions may not be called on the sink. The sink may be
-     *  re-opened by calling @ref logger::register_sink.
+     *  Closes the source. After this function returns the source is closed and
+     *  log() functions may not be called on the source. The source may be
+     *  re-opened by calling @ref logger::register_source.
      */
     void close();
 
     /**
-     * Returns true if the sink is open (connected to a logger), or false if
-     * the sink is closed (not connected to a logger). Log messages may only
-     * be written to a sink that is open.
+     * Returns true if the source is open (connected to a logger), or false if
+     * the source is closed (not connected to a logger). Log messages may only
+     * be written to a source that is open.
      */
     bool is_open() const noexcept;
 
     /**
-     *  Synchronizes all log calls previously made by this sink to back-end
+     *  Synchronizes all log calls previously made by this source to back-end
      *  storage.
      *
-     *  @post All entries in the sink's queue have been delivered to the
+     *  @post All entries in the source's queue have been delivered to the
      *        back-end, and the flush() and sync() functions associated
      *        with the back-end have been called. For the default (disk)
      *        back-end this means fflush(3) and fsync(2) (if available)
@@ -146,7 +146,7 @@ public:
     }
 
     /**
-     *  Sets the sink's name to the specified value.
+     *  Sets the source name to the specified value.
      */
     void set_name(std::string name);
 
@@ -160,7 +160,7 @@ public:
     void log(Args&&... args) noexcept((XTR_NOTHROW_INGESTIBLE(Args, args) && ...));
 
     /**
-     *  Sets the log level of the sink to the specified level (see @ref log_level_t).
+     *  Sets the log level of the source to the specified level (see @ref log_level_t).
      *  Any log statement made with a log level with lower importance than the
      *  current level will be dropped\---please see the <a href="guide.html#log-levels">
      *  log levels</a> section of the user guide for details.
@@ -179,7 +179,7 @@ public:
     }
 
 private:
-    sink(logger& owner, std::string name);
+    source(logger& owner, std::string name);
 
     template<auto Format, auto Level, typename Tags = void()>
     void log_impl() noexcept;
@@ -219,14 +219,14 @@ private:
 };
 
 template<auto Format, auto Level, typename Tags, typename... Args>
-void xtr::sink::log(Args&&... args)
+void xtr::source::log(Args&&... args)
     noexcept((XTR_NOTHROW_INGESTIBLE(Args, args) && ...))
 {
     log_impl<Format, Level, Tags>(std::forward<Args>(args)...);
 }
 
 template<auto Format, auto Level, typename Tags>
-void xtr::sink::log_impl() noexcept
+void xtr::source::log_impl() noexcept
 {
     // This function is just an optimisation; if the log line has no arguments
     // then creating a lambda for it would waste space in the queue (as even
@@ -239,7 +239,7 @@ void xtr::sink::log_impl() noexcept
 }
 
 template<auto Format, auto Level, typename Tags, typename... Args>
-void xtr::sink::log_impl(Args&&... args)
+void xtr::source::log_impl(Args&&... args)
     noexcept((XTR_NOTHROW_INGESTIBLE(Args, args) && ...))
 {
     static_assert(sizeof...(Args) > 0);
@@ -255,7 +255,7 @@ void xtr::sink::log_impl(Args&&... args)
 }
 
 template<auto Format, auto Level, typename Tags, typename... Args>
-void xtr::sink::post_with_str_table(Args&&... args)
+void xtr::source::post_with_str_table(Args&&... args)
     noexcept((XTR_NOTHROW_INGESTIBLE(Args, args) && ...))
 {
     using lambda_t =
@@ -309,7 +309,7 @@ void xtr::sink::post_with_str_table(Args&&... args)
 }
 
 template<typename T>
-void xtr::sink::copy(std::byte* pos, T&& value)
+void xtr::source::copy(std::byte* pos, T&& value)
     noexcept(XTR_NOTHROW_INGESTIBLE(T, value))
 {
     assert(std::uintptr_t(pos) % alignof(T) == 0);
@@ -323,7 +323,7 @@ void xtr::sink::copy(std::byte* pos, T&& value)
 }
 
 template<auto Format, auto Level, typename Tags, typename Func>
-void xtr::sink::post(Func&& func)
+void xtr::source::post(Func&& func)
     noexcept(XTR_NOTHROW_INGESTIBLE(Func, func))
 {
     ring_buffer::span s = buf_.write_span_spec();
@@ -354,7 +354,7 @@ void xtr::sink::post(Func&& func)
 }
 
 template<typename Tags, typename... Args>
-auto xtr::sink::make_lambda(Args&&... args)
+auto xtr::source::make_lambda(Args&&... args)
     noexcept((XTR_NOTHROW_INGESTIBLE(Args, args) && ...))
 {
     // This lambda is mutable so that std::forward works correctly, without it

@@ -36,7 +36,7 @@
 
 namespace xtr
 {
-    class sink;
+    class source;
 
     namespace detail
     {
@@ -47,14 +47,14 @@ namespace xtr
 class xtr::detail::consumer
 {
 private:
-    struct sink_handle
+    struct source_handle
     {
-        sink* operator->()
+        source* operator->()
         {
             return p;
         }
 
-        sink* p;
+        source* p;
         std::string name;
         std::size_t dropped_count = 0;
     };
@@ -78,7 +78,7 @@ public:
         ReopenFunction&& rf,
         CloseFunction&& cf,
         log_level_style_t ls,
-        sink* control)
+        source* control)
     :
         out(std::forward<OutputFunction>(of)),
         err(std::forward<ErrorFunction>(ef)),
@@ -87,11 +87,11 @@ public:
         reopen(std::forward<ReopenFunction>(rf)),
         close(std::forward<CloseFunction>(cf)),
         lstyle(ls),
-        sinks_({{control, "control", 0}})
+        sources_({{control, "control", 0}})
     {
     }
 
-    void add_sink(sink& s, const std::string& name);
+    void add_source(source& s, const std::string& name);
 
     std::function<::ssize_t(log_level_t level, const char* buf, std::size_t size)> out;
     std::function<void(const char* buf, std::size_t size)> err;
@@ -107,7 +107,7 @@ private:
     void set_level_handler(int fd, detail::set_level&);
     void reopen_handler(int fd, detail::reopen&);
 
-    std::vector<sink_handle> sinks_;
+    std::vector<source_handle> sources_;
     std::unique_ptr<
         detail::command_dispatcher,
         detail::command_dispatcher_deleter> cmds_;

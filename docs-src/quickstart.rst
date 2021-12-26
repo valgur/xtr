@@ -15,14 +15,14 @@ Overview
 --------
 
 The logger is split into two main components, the :ref:`logger <logger>` class
-and the :ref:`sink <sink>` class. The logger takes care of opening and closing the log file,
-and is thread-safe. The sink class is used to write to the log. Sinks are
-created by calling :cpp:func:`xtr::logger::get_sink` and are not thread
-safe---the idea is that applications have many sinks, so threads should each
-have their own set of separate sinks.
+and the :ref:`source <source>` class. The logger takes care of opening and closing the log file,
+and is thread-safe. The source class is used to write to the log. Sources are
+created by calling :cpp:func:`xtr::logger::get_source` and are not thread
+safe---the idea is that applications have many sources, so threads should each
+have their own set of separate sources.
 
 Log messages are written using various :ref:`macros <log-macros>` which accept
-a sink as their first argument, followed by a Python
+a source as their first argument, followed by a Python
 `str.format <https://docs.python.org/3/library/string.html#formatstrings>`__
 style format string. The `{fmt} <https://fmt.dev>`__ library is used for
 formatting.
@@ -30,7 +30,7 @@ formatting.
 Examples
 --------
 
-Creating a sink:
+Creating a source:
 
 .. code-block:: c++
 
@@ -38,16 +38,16 @@ Creating a sink:
 
     xtr::logger log;
 
-    xtr::sink s = log.get_sink("Main");
+    xtr::source s = log.get_source("Main");
 
-Writing to the log, blocking if the sink is full, reading the timestamp
+Writing to the log, blocking if the source is full, reading the timestamp
 in the background thread [#timestamps]_:
 
 .. code-block:: c++
 
     XTR_LOG(s, "Hello world");
 
-Write to the log, discarding the message if the sink is full, reading the
+Write to the log, discarding the message if the source is full, reading the
 timestamp in the background thread:
 
 .. code-block:: c++
@@ -69,15 +69,15 @@ on FreeBSD:
 
     XTR_LOG_RTC(s, "Hello world");
 
-Write to the log if the log level of the sink is at the 'info' level or a level
-with lower importance than 'info'. The default sink level 'info' so this
+Write to the log if the log level of the source is at the 'info' level or a level
+with lower importance than 'info'. The default source level 'info' so this
 message will be logged:
 
 .. code-block:: c++
 
     XTR_LOGL(info, s, "Hello world");
 
-Set the log level of the sink 's' to 'error', causing messages with importance
+Set the log level of the source 's' to 'error', causing messages with importance
 lower than 'error' to be dropped. Available log levels are debug, info, warning,
 error and fatal---see :cpp:enum:`xtr::log_level_t`.
 
@@ -95,7 +95,7 @@ Fatal errors will log and then terminate the program using
     XTR_LOGL(fatal, s, "Goodbye cruel world");
     // NOTREACHED
 
-By default, objects and strings are copied into the sink. This is so that the
+By default, objects and strings are copied into the source. This is so that the
 default behaviour is safe---i.e. to avoid creating dangling references the
 logger does not assume anything about the lifetime of objects passed as
 arguments:
@@ -122,7 +122,7 @@ Arguments may also be moved in to the logger:
 .. rubric:: Footnotes
 
 .. [#timestamps] The behaviour for XTR_LOG is that timestamps are read when
-                 the background thread reads the event from the sink. This is
+                 the background thread reads the event from the source. This is
                  less accurate, but faster than reading the time at the log
                  call-site. If reading the time at the call-site is preferred,
                  use XTR_LOG_TSC or XTR_LOG_RTC. See the

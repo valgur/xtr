@@ -25,7 +25,7 @@
 #include "xtr/detail/commands/responses.hpp"
 #include "xtr/detail/strzcpy.hpp"
 #include "xtr/command_path.hpp"
-#include "xtr/sink.hpp"
+#include "xtr/source.hpp"
 #include "xtr/timespec.hpp"
 
 #include <fmt/chrono.h>
@@ -43,23 +43,23 @@ void xtr::detail::consumer::run(std::function<::timespec()>&& clock) noexcept
     std::size_t flush_count = 0;
     fmt::memory_buffer mbuf;
 
-    for (std::size_t i = 0; !sinks_.empty(); ++i)
+    for (std::size_t i = 0; !sources_.empty(); ++i)
     {
-        sink::ring_buffer::span span;
-        // The inner loop below can modify sinks so a reference cannot be taken
-        const std::size_t n = i % sinks_.size();
+        source::ring_buffer::span span;
+        // The inner loop below can modify sources so a reference cannot be taken
+        const std::size_t n = i % sources_.size();
 
         if (n == 0)
         {
-            // Read the clock and commands once per loop over sinks
+            // Read the clock and commands once per loop over sources
             ts_stale |= true;
             if (cmds_)
                 cmds_->process_commands(/* timeout= */0);
         }
 
-        if ((span = sinks_[n]->buf_.read_span()).empty())
+        if ((span = sources_[n]->buf_.read_span()).empty())
         {
-            // flush if no further data available (all sinks empty)
+            // flush if no further data available (all sources empty)
             if (flush_count != 0 && flush_count-- == 1)
                 flush();
             continue;
@@ -75,36 +75,36 @@ void xtr::detail::consumer::run(std::function<::timespec()>&& clock) noexcept
 
         // span.end is capped to the end of the first mapping to guarantee that
         // data is only read from the same address that it was written to (the
-        // sink always begins log records in the first mapping, so we do not
+        // source always begins log records in the first mapping, so we do not
         // read a record beginning in the second mapping). This is done to
         // avoid undefined behaviour---reading an object from a different
         // address than it was written to will work on Intel and probably many
         // other CPUs but is outside of what is permitted by the C++ memory
         // model.
         std::byte* pos = span.begin();
-        std::byte* end = std::min(span.end(), sinks_[n]->buf_.end());
+        std::byte* end = std::min(span.end(), sources_[n]->buf_.end());
         do
         {
-            assert(std::uintptr_t(pos) % alignof(sink::fptr_t) == 0);
+            assert(std::uintptr_t(pos) % alignof(source::fptr_t) == 0);
             assert(!destroy);
-            const sink::fptr_t fptr = *reinterpret_cast<const sink::fptr_t*>(pos);
-            pos = fptr(mbuf, pos, *this, ts, sinks_[n].name);
+            const source::fptr_t fptr = *reinterpret_cast<const source::fptr_t*>(pos);
+            pos = fptr(mbuf, pos, *this, ts, sources_[n].name);
         } while (pos < end);
 
         if (destroy)
         {
             using std::swap;
-            swap(sinks_[n], sinks_.back()); // possible self-swap, ok
-            sinks_.pop_back();
+            swap(sources_[n], sources_.back()); // possible self-swap, ok
+            sources_.pop_back();
             continue;
         }
 
-        sinks_[n]->buf_.reduce_readable(
-            sink::ring_buffer::size_type(pos - span.begin()));
+        sources_[n]->buf_.reduce_readable(
+            source::ring_buffer::size_type(pos - span.begin()));
 
         std::size_t n_dropped;
-        if (sinks_[n]->buf_.read_span().empty() &&
-            (n_dropped = sinks_[n]->buf_.dropped_count()) > 0)
+        if (sources_[n]->buf_.read_span().empty() &&
+            (n_dropped = sources_[n]->buf_.dropped_count()) > 0)
         {
             detail::print(
                 mbuf,
@@ -114,22 +114,22 @@ void xtr::detail::consumer::run(std::function<::timespec()>&& clock) noexcept
                 "{}{} {}: {} messages dropped\n",
                 log_level_t::warning,
                 ts,
-                sinks_[n].name,
+                sources_[n].name,
                 n_dropped);
-            sinks_[n].dropped_count += n_dropped;
+            sources_[n].dropped_count += n_dropped;
         }
 
-        // flushing may be late/early if sinks is modified, doesn't matter
-        flush_count = sinks_.size();
+        // flushing may be late/early if sources is modified, doesn't matter
+        flush_count = sources_.size();
     }
 
     close();
 }
 
 XTR_FUNC
-void xtr::detail::consumer::add_sink(sink& s, const std::string& name)
+void xtr::detail::consumer::add_source(source& s, const std::string& name)
 {
-    sinks_.push_back(sink_handle{&s, name});
+    sources_.push_back(source_handle{&s, name});
 }
 
 XTR_FUNC
@@ -196,14 +196,14 @@ void xtr::detail::consumer::status_handler(int fd, detail::status& st)
         return;
     }
 
-    for (std::size_t i = 1; i < sinks_.size(); ++i)
+    for (std::size_t i = 1; i < sources_.size(); ++i)
     {
-        auto& s = sinks_[i];
+        auto& s = sources_[i];
 
         if (!(*matcher)(s.name.c_str()))
             continue;
 
-        detail::frame<detail::sink_info> sif;
+        detail::frame<detail::source_info> sif;
 
         sif->level = s->level();
         sif->buf_capacity = s->buf_.capacity();
@@ -238,9 +238,9 @@ void xtr::detail::consumer::set_level_handler(int fd, detail::set_level& sl)
         return;
     }
 
-    for (std::size_t i = 1; i < sinks_.size(); ++i)
+    for (std::size_t i = 1; i < sources_.size(); ++i)
     {
-        auto& s = sinks_[i];
+        auto& s = sources_[i];
 
         if (!(*matcher)(s.name.c_str()))
             continue;
